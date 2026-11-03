@@ -4,4 +4,3 @@ target/
 .github/
 README.md
 *.iml
-.mvn/wrapper/maven-wrapper.properties
