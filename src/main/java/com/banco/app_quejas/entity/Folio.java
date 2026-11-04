@@ -2,6 +2,7 @@ package com.banco.app_quejas.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -10,7 +11,9 @@ import java.util.regex.Pattern;
  * Formato válido: letras mayúsculas, guion y números. Ej: QTC-001, TARJETA-2026-01
  */
 @Embeddable
-public final class Folio {
+public final class Folio implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private static final Pattern FORMATO = Pattern.compile("^[A-Z0-9]+-[A-Z0-9-]+$");
 
