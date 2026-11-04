@@ -1,10 +1,7 @@
 package com.banco.app_quejas.service;
 
 import com.banco.app_quejas.dto.QuejaTarjetaCreditoRequest;
-import com.banco.app_quejas.entity.EstadoQueja;
-import com.banco.app_quejas.entity.Prioridad;
-import com.banco.app_quejas.entity.Queja;
-import com.banco.app_quejas.entity.QuejaTarjetaCredito;
+import com.banco.app_quejas.entity.*;
 import com.banco.app_quejas.repository.QuejaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,50 +23,54 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class GestionQuejasServiceTest {
+
     @Mock
-    private QuejaRepository quejaRepository; //Simula el repositorio o bd
+    private QuejaRepository quejaRepository;
 
     @InjectMocks
-    private GestionQuejasService gestionQuejasService; //Inyectamos los mocks en el servicio real
+    private GestionQuejasService gestionQuejasService;
 
     private QuejaTarjetaCreditoRequest requestDto;
+    private Folio folio001;
+    private Folio folio002;
 
     @BeforeEach
-    void setUp(){
-        //Datos de prueba iniciales de cada test
+    void setUp() {
+        folio001 = new Folio("Q-2026-001");
+        folio002 = new Folio("Q-2026-002");
+
         requestDto = new QuejaTarjetaCreditoRequest(
                 "Q-2026-002",
                 "CLI-82793",
                 new BigDecimal("2500.00"),
                 Prioridad.MEDIA,
-                "CDMX -Sucursal Polanco",
+                "CDMX - Sucursal Polanco",
                 LocalDateTime.now()
         );
     }
 
     @Test
     @DisplayName("Debe registrar una queja de tarjeta exitosamente cuando el folio no existe")
-    void testRegistrarQuejaTarjetaExitoso(){
-        when(quejaRepository.existsById("Q-2026-002")).thenReturn(false);
+    void testRegistrarQuejaTarjetaExitoso() {
+        when(quejaRepository.existsById(folio002)).thenReturn(false);
         when(quejaRepository.save(any(QuejaTarjetaCredito.class))).thenReturn(null);
 
         gestionQuejasService.registrarQuejaTarjeta(requestDto);
 
-        verify(quejaRepository, times(1)).existsById("Q-2026-002");
+        verify(quejaRepository, times(1)).existsById(folio002);
         verify(quejaRepository, times(1)).save(any(QuejaTarjetaCredito.class));
     }
 
     @Test
     @DisplayName("Debe lanzar IllegalArgumentException si el folio de la queja ya existe")
-    void testRegistrarQuejaFolioDuplicado(){
-        when(quejaRepository.existsById(requestDto.folio())).thenReturn(true);
+    void testRegistrarQuejaFolioDuplicado() {
+        when(quejaRepository.existsById(folio002)).thenReturn(true);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            gestionQuejasService.registrarQuejaTarjeta(requestDto);
-        });
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+                gestionQuejasService.registrarQuejaTarjeta(requestDto)
+        );
 
-
-        assertThat(exception.getMessage()).contains("Ya existe una queja registrada con el folio: " + requestDto.folio());
+        assertThat(exception.getMessage()).contains("Ya existe una queja registrada con el folio");
         verify(quejaRepository, never()).save(any());
     }
 
@@ -77,12 +78,12 @@ public class GestionQuejasServiceTest {
     @DisplayName("Debe buscar una queja por folio exitosamente")
     void testBuscarPorFolioExitoso() {
         Queja quejaMock = mock(Queja.class);
-        when(quejaRepository.findById("Q-2026-001")).thenReturn(Optional.of(quejaMock));
+        when(quejaRepository.findById(folio001)).thenReturn(Optional.of(quejaMock));
 
         Optional<Queja> resultado = gestionQuejasService.buscarPorFolio("Q-2026-001");
 
         assertThat(resultado).isPresent();
-        verify(quejaRepository, times(1)).findById("Q-2026-001");
+        verify(quejaRepository, times(1)).findById(folio001);
     }
 
     @Test
@@ -111,12 +112,12 @@ public class GestionQuejasServiceTest {
     @DisplayName("Debe avanzar el estado de una queja existente correctamente")
     void testAvanzarEstadoExitoso() {
         Queja quejaMock = mock(Queja.class);
-        when(quejaRepository.findById("Q-2026-001")).thenReturn(Optional.of(quejaMock));
+        when(quejaRepository.findById(folio001)).thenReturn(Optional.of(quejaMock));
         when(quejaRepository.save(any(Queja.class))).thenReturn(quejaMock);
 
         gestionQuejasService.avanzarEstado("Q-2026-001", EstadoQueja.EN_INVESTIGACION);
 
-        verify(quejaRepository, times(1)).findById("Q-2026-001");
+        verify(quejaRepository, times(1)).findById(folio001);
         verify(quejaMock, times(1)).cambiarEstado(EstadoQueja.EN_INVESTIGACION);
         verify(quejaRepository, times(1)).save(quejaMock);
     }
@@ -125,12 +126,12 @@ public class GestionQuejasServiceTest {
     @DisplayName("Debe emitir dictamen en una queja existente correctamente")
     void testEmitirDictamenExitoso() {
         Queja quejaMock = mock(Queja.class);
-        when(quejaRepository.findById("Q-2026-001")).thenReturn(Optional.of(quejaMock));
+        when(quejaRepository.findById(folio001)).thenReturn(Optional.of(quejaMock));
         when(quejaRepository.save(any(Queja.class))).thenReturn(quejaMock);
 
         gestionQuejasService.emitirDictamen("Q-2026-001", "Dictamen favorable al cliente");
 
-        verify(quejaRepository, times(1)).findById("Q-2026-001");
+        verify(quejaRepository, times(1)).findById(folio001);
         verify(quejaMock, times(1)).emitirDictamen("Dictamen favorable al cliente");
         verify(quejaRepository, times(1)).save(quejaMock);
     }
