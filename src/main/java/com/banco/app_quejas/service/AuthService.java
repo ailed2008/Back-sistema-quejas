@@ -39,7 +39,7 @@ public class AuthService {
 
         userRepository.save(usuario);
         var jwtToken = jwtService.generarToken(usuario); // <-- Usando el método en español
-        return new AuthResponse(jwtToken); // <-- Instanciación correcta para un record
+        return new AuthResponse(jwtToken, usuario.getRol().name());
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -56,6 +56,6 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
         var jwtToken = jwtService.generarToken(user); // <-- Usando el método en español
-        return new AuthResponse(jwtToken); // <-- Instanciación correcta para un record
+        return new AuthResponse(jwtToken, user.getRol().name());
     }
 }
