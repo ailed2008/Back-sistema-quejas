@@ -29,11 +29,11 @@ public class QuejaController {
         try {
             gestionQuejasService.registrarQuejaTarjeta(dto);
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body("✅ Queja de tarjeta de crédito registrada y guardada en MySQL con éxito.");
+                    .body("Queja de tarjeta de crédito registrada y guardada con éxito.");
         } catch (IllegalArgumentException | IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("❌ Error de validación: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error de validación: " + e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("❌ Error interno: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error interno: " + e.getMessage());
         }
     }
 
@@ -50,7 +50,7 @@ public class QuejaController {
         return gestionQuejasService.buscarPorFolio(folio)
                 .<ResponseEntity<Object>>map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body("❌ No se encontró ninguna queja con el folio: " + folio));
+                        .body("No se encontró ninguna queja con el folio: " + folio));
     }
 
     @PatchMapping("/{folio}/estado")
@@ -62,7 +62,7 @@ public class QuejaController {
             gestionQuejasService.avanzarEstado(folio, nuevoEstado);
             return ResponseEntity.ok("✅ Estado de la queja actualizado exitosamente a: " + nuevoEstado);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("❌ Error al cambiar estado: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error al cambiar estado: " + e.getMessage());
         }
     }
 
@@ -75,7 +75,7 @@ public class QuejaController {
             gestionQuejasService.emitirDictamen(folio, textoDictamen);
             return ResponseEntity.ok("✅ Dictamen emitido correctamente y estado actualizado a DICTAMINADA.");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("❌ Error al emitir dictamen: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error al emitir dictamen: " + e.getMessage());
         }
     }
 
