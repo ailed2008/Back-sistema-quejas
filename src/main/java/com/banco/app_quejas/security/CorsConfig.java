@@ -20,7 +20,7 @@ public class CorsConfig {
         config.setAllowCredentials(true);
 
         // Origen exacto de tu frontend en Angular
-        config.setAllowedOrigins(List.of("http://localhost:4200"));
+        config.setAllowedOrigins(List.of("http://localhost:4200", "https://queja.netlify.app" ));
 
         // Permitir todos los encabezados
         config.setAllowedHeaders(List.of("*"));
