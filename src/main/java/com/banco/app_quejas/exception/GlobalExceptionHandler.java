@@ -3,6 +3,7 @@ package com.banco.app_quejas.exception;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -32,6 +33,28 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(respuesta);
     }
 
+    // JSON mal formado o tipos incompatibles (ej. LocalDateTime no parseable)
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleNotReadable(HttpMessageNotReadableException ex) {
+        Map<String, Object> respuesta = new HashMap<>();
+        respuesta.put("timestamp", LocalDateTime.now().toString());
+        respuesta.put("status", HttpStatus.BAD_REQUEST.value());
+        respuesta.put("mensaje", "JSON mal formado o tipo de dato incorrecto: " + ex.getMostSpecificCause().getMessage());
+
+        return ResponseEntity.badRequest().body(respuesta);
+    }
+
+    // Errores de lógica de negocio
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
+        Map<String, Object> respuesta = new HashMap<>();
+        respuesta.put("timestamp", LocalDateTime.now().toString());
+        respuesta.put("status", HttpStatus.BAD_REQUEST.value());
+        respuesta.put("mensaje", ex.getMessage());
+
+        return ResponseEntity.badRequest().body(respuesta);
+    }
+
     // Entidad no encontrada
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(EntityNotFoundException ex) {
@@ -43,16 +66,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(respuesta);
     }
 
-    // Error genérico
+    // Error genérico — último recurso
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
-
-        ex.printStackTrace();//temporal
+        ex.printStackTrace();
 
         Map<String, Object> respuesta = new HashMap<>();
         respuesta.put("timestamp", LocalDateTime.now().toString());
         respuesta.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        respuesta.put("mensaje", "Error interno del servidor");
+        respuesta.put("mensaje", "Error interno del servidor: " + ex.getClass().getSimpleName() + " - " + ex.getMessage());
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(respuesta);
     }

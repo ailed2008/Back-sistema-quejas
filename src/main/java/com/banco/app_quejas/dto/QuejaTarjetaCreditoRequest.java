@@ -1,6 +1,7 @@
 package com.banco.app_quejas.dto;
 
 import com.banco.app_quejas.entity.Prioridad;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -26,5 +27,6 @@ public record QuejaTarjetaCreditoRequest(
         String lugarSuceso,
 
         @NotNull(message = "La hora de la transacción es obligatoria")
+        @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
         LocalDateTime horaTransaccion
 ) {}
