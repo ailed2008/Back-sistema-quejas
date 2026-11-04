@@ -1,5 +1,6 @@
 package com.banco.app_quejas.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import lombok.Getter;
@@ -15,25 +16,28 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Entity
 @DiscriminatorValue("TARJETA_CREDITO")
+public class QuejaTarjetaCredito extends Queja {
 
-public class QuejaTarjetaCredito extends Queja{
     private String lugarSuceso;
 
+    @Column(name = "hora_transaccion")
     private LocalDateTime horaTransaccion;
 
-    public QuejaTarjetaCredito(String folio, LocalDate fechaRecepcion, String numCliente,
-                           BigDecimal montoReclamado, Prioridad prioridad,
-                           String lugarSuceso, LocalDateTime horaTransaccion){
+    public QuejaTarjetaCredito(Folio folio, LocalDate fechaRecepcion, String numCliente,
+                                BigDecimal montoReclamado, Prioridad prioridad,
+                                String lugarSuceso, LocalDateTime horaTransaccion) {
         super(folio, fechaRecepcion, numCliente, montoReclamado, prioridad);
         this.lugarSuceso = lugarSuceso;
         this.horaTransaccion = horaTransaccion;
-
     }
+
     @Override
     public void validarRequisitosFormales() {
         if (lugarSuceso == null || lugarSuceso.isBlank()) {
             throw new IllegalArgumentException("El lugar del suceso es obligatorio para quejas de Tarjeta de Crédito.");
         }
+        if (horaTransaccion == null) {
+            throw new IllegalArgumentException("La hora de la transacción es obligatoria.");
+        }
     }
-
 }
