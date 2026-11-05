@@ -1,11 +1,11 @@
 package com.banco.app_quejas.entity;
 
+import com.banco.app_quejas.exception.InvalidStatusTransitionException;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
 
@@ -22,13 +22,13 @@ public abstract class Queja {
     private Folio folio;
 
     @Column(name = "fecha_recepcion", nullable = false)
-    private LocalDate fechaRecepcion;
+    private LocalDate receptionDate;
 
     @Column(name = "num_cliente", nullable = false)
-    private String numCliente;
+    private String customerNumber;
 
-    @Column(name = "monto_reclamado", nullable = false, precision = 12, scale = 2)
-    private BigDecimal montoReclamado;
+    @Embedded
+    private Monto claimedAmount;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -39,36 +39,39 @@ public abstract class Queja {
     private EstadoQueja estado;
 
     @Column(name = "texto_dictamen", length = 1000)
-    private String textoDictamen;
+    private String ruling;
 
-    public Queja(Folio folio, LocalDate fechaRecepcion, String numCliente,
-                 BigDecimal montoReclamado, Prioridad prioridad) {
+    public Queja(Folio folio, LocalDate receptionDate, String customerNumber,
+                 Monto claimedAmount, Prioridad prioridad) {
 
-        this.folio = Objects.requireNonNull(folio, "El folio no puede ser nulo");
-        this.fechaRecepcion = Objects.requireNonNull(fechaRecepcion, "La fecha de recepción es obligatoria");
-        this.numCliente = Objects.requireNonNull(numCliente, "El número de cliente es obligatorio");
-        this.montoReclamado = Objects.requireNonNull(montoReclamado, "El monto reclamado es obligatorio");
-        this.prioridad = Objects.requireNonNull(prioridad, "La prioridad es obligatoria");
-        this.estado = EstadoQueja.REGISTRADA;
+        this.folio         = Objects.requireNonNull(folio, "Folio cannot be null");
+        this.receptionDate = Objects.requireNonNull(receptionDate, "Reception date cannot be null");
+        this.customerNumber= Objects.requireNonNull(customerNumber, "Customer number cannot be null");
+        this.claimedAmount = Objects.requireNonNull(claimedAmount, "Claimed amount cannot be null");
+        this.prioridad     = Objects.requireNonNull(prioridad, "Priority cannot be null");
+        this.estado        = EstadoQueja.REGISTRADA;
     }
 
-    /** Devuelve el valor String del folio para uso en mensajes y endpoints */
-    public String getFolioValor() {
+    public String getFolioValue() {
         return folio != null ? folio.getValor() : null;
     }
 
-    public abstract void validarRequisitosFormales();
+    public abstract void validateFormalRequirements();
 
-    public void cambiarEstado(EstadoQueja nuevoEstado) {
-        Objects.requireNonNull(nuevoEstado, "El nuevo estado no puede ser nulo");
-        this.estado = this.estado.transicionarA(nuevoEstado);
+    public void changeStatus(EstadoQueja newStatus) {
+        Objects.requireNonNull(newStatus, "New status cannot be null");
+        try {
+            this.estado = this.estado.transicionarA(newStatus);
+        } catch (IllegalStateException e) {
+            throw new InvalidStatusTransitionException(this.estado.name(), newStatus.name());
+        }
     }
 
-    public void emitirDictamen(String dictamen) {
-        if (dictamen == null || dictamen.isBlank()) {
-            throw new IllegalArgumentException("El texto del dictamen es obligatorio");
+    public void issueRuling(String rulingText) {
+        if (rulingText == null || rulingText.isBlank()) {
+            throw new IllegalArgumentException("Ruling text cannot be empty");
         }
-        this.textoDictamen = dictamen;
+        this.ruling = rulingText;
         this.estado = EstadoQueja.DICTAMINADA;
     }
 }

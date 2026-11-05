@@ -7,7 +7,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -18,26 +17,27 @@ import java.time.LocalDateTime;
 @DiscriminatorValue("TARJETA_CREDITO")
 public class QuejaTarjetaCredito extends Queja {
 
-    private String lugarSuceso;
+    @Column(name = "lugar_suceso")
+    private String incidentLocation;
 
     @Column(name = "hora_transaccion")
-    private LocalDateTime horaTransaccion;
+    private LocalDateTime transactionTime;
 
-    public QuejaTarjetaCredito(Folio folio, LocalDate fechaRecepcion, String numCliente,
-                                BigDecimal montoReclamado, Prioridad prioridad,
-                                String lugarSuceso, LocalDateTime horaTransaccion) {
-        super(folio, fechaRecepcion, numCliente, montoReclamado, prioridad);
-        this.lugarSuceso = lugarSuceso;
-        this.horaTransaccion = horaTransaccion;
+    public QuejaTarjetaCredito(Folio folio, LocalDate receptionDate, String customerNumber,
+                                Monto claimedAmount, Prioridad prioridad,
+                                String incidentLocation, LocalDateTime transactionTime) {
+        super(folio, receptionDate, customerNumber, claimedAmount, prioridad);
+        this.incidentLocation = incidentLocation;
+        this.transactionTime  = transactionTime;
     }
 
     @Override
-    public void validarRequisitosFormales() {
-        if (lugarSuceso == null || lugarSuceso.isBlank()) {
-            throw new IllegalArgumentException("El lugar del suceso es obligatorio para quejas de Tarjeta de Crédito.");
+    public void validateFormalRequirements() {
+        if (incidentLocation == null || incidentLocation.isBlank()) {
+            throw new IllegalArgumentException("Incident location is required for credit card complaints.");
         }
-        if (horaTransaccion == null) {
-            throw new IllegalArgumentException("La hora de la transacción es obligatoria.");
+        if (transactionTime == null) {
+            throw new IllegalArgumentException("Transaction time is required.");
         }
     }
 }

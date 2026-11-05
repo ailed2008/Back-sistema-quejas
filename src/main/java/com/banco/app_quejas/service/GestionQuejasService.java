@@ -2,6 +2,8 @@ package com.banco.app_quejas.service;
 
 import com.banco.app_quejas.dto.QuejaTarjetaCreditoRequest;
 import com.banco.app_quejas.entity.*;
+import com.banco.app_quejas.exception.ComplaintNotFoundException;
+import com.banco.app_quejas.exception.DuplicateFolioException;
 import com.banco.app_quejas.repository.QuejaRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
@@ -21,31 +23,32 @@ public class GestionQuejasService {
     }
 
     @Transactional
-    public void registrarQuejaTarjeta(QuejaTarjetaCreditoRequest dto) {
-        Objects.requireNonNull(dto, "El DTO de la queja no puede ser nulo");
+    public void registerCardComplaint(QuejaTarjetaCreditoRequest dto) {
+        Objects.requireNonNull(dto, "Request DTO cannot be null");
 
-        // El VO valida el formato del folio al construirse
         Folio folio = new Folio(dto.folio());
 
         if (quejaRepository.existsById(folio)) {
-            throw new IllegalArgumentException("Ya existe una queja registrada con el folio: " + folio);
+            throw new DuplicateFolioException(folio.getValor());
         }
 
-        QuejaTarjetaCredito queja = new QuejaTarjetaCredito(
+        Monto amount = new Monto(dto.montoReclamado());
+
+        QuejaTarjetaCredito complaint = new QuejaTarjetaCredito(
             folio,
             LocalDate.now(),
             dto.numCliente(),
-            dto.montoReclamado(),
+            amount,
             dto.prioridad(),
             dto.lugarSuceso(),
             dto.horaTransaccion()
         );
 
-        queja.validarRequisitosFormales();
-        quejaRepository.save(queja);
+        complaint.validateFormalRequirements();
+        quejaRepository.save(complaint);
     }
 
-    public Optional<Queja> buscarPorFolio(String folioStr) {
+    public Optional<Queja> findByFolio(String folioStr) {
         if (folioStr == null || folioStr.isBlank()) return Optional.empty();
         try {
             return quejaRepository.findById(new Folio(folioStr));
@@ -54,31 +57,31 @@ public class GestionQuejasService {
         }
     }
 
-    public List<Queja> obtenerTodas() {
+    public List<Queja> findAll() {
         return quejaRepository.findAll();
     }
 
     @Transactional
-    public void avanzarEstado(String folioStr, EstadoQueja nuevoEstado) {
-        Queja queja = buscarPorFolio(folioStr)
-            .orElseThrow(() -> new IllegalArgumentException("No se encontró la queja con el folio: " + folioStr));
-        queja.cambiarEstado(nuevoEstado);
-        quejaRepository.save(queja);
+    public void advanceStatus(String folioStr, EstadoQueja newStatus) {
+        Queja complaint = findByFolio(folioStr)
+            .orElseThrow(() -> new ComplaintNotFoundException(folioStr));
+        complaint.changeStatus(newStatus);
+        quejaRepository.save(complaint);
     }
 
     @Transactional
-    public void emitirDictamen(String folioStr, String textoDictamen) {
-        Queja queja = buscarPorFolio(folioStr)
-            .orElseThrow(() -> new IllegalArgumentException("No se encontró la queja con el folio: " + folioStr));
-        queja.emitirDictamen(textoDictamen);
-        quejaRepository.save(queja);
+    public void issueRuling(String folioStr, String rulingText) {
+        Queja complaint = findByFolio(folioStr)
+            .orElseThrow(() -> new ComplaintNotFoundException(folioStr));
+        complaint.issueRuling(rulingText);
+        quejaRepository.save(complaint);
     }
 
     @Transactional
-    public void eliminarQueja(String folioStr) {
+    public void deleteComplaint(String folioStr) {
         Folio folio = new Folio(folioStr);
         if (!quejaRepository.existsById(folio)) {
-            throw new RuntimeException("No se encontró ninguna queja con el folio: " + folioStr);
+            throw new ComplaintNotFoundException(folioStr);
         }
         quejaRepository.deleteById(folio);
     }

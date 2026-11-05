@@ -12,81 +12,60 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-
 @RestController
 @RequestMapping("/api/quejas")
 public class QuejaController {
 
-    private final GestionQuejasService gestionQuejasService;
+    private final GestionQuejasService complaintService;
 
-    public QuejaController(GestionQuejasService gestionQuejasService) {
-        this.gestionQuejasService = gestionQuejasService;
+    public QuejaController(GestionQuejasService complaintService) {
+        this.complaintService = complaintService;
     }
 
     @PostMapping("/tarjeta")
     @PreAuthorize("hasAnyRole('ADMIN','EJECUTIVO')")
-    public ResponseEntity<String> registrarQuejaTarjeta(@Valid @RequestBody QuejaTarjetaCreditoRequest dto) {
-        try {
-            gestionQuejasService.registrarQuejaTarjeta(dto);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body("Queja de tarjeta de crédito registrada y guardada con éxito.");
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error de validación: " + e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error interno: " + e.getMessage());
-        }
+    public ResponseEntity<String> registerCardComplaint(@Valid @RequestBody QuejaTarjetaCreditoRequest dto) {
+        complaintService.registerCardComplaint(dto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body("Complaint registered successfully.");
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'EJECUTIVO')")
-    public ResponseEntity<List<Queja>> listarTodas() {
-        List<Queja> quejas = gestionQuejasService.obtenerTodas();
-        return ResponseEntity.ok(quejas);
+    @PreAuthorize("hasAnyRole('ADMIN','EJECUTIVO')")
+    public ResponseEntity<List<Queja>> findAll() {
+        return ResponseEntity.ok(complaintService.findAll());
     }
 
     @GetMapping("/{folio}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'EJECUTIVO')")
-    public ResponseEntity<Object> buscarPorFolio(@PathVariable String folio) {
-        return gestionQuejasService.buscarPorFolio(folio)
-                .<ResponseEntity<Object>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body("No se encontró ninguna queja con el folio: " + folio));
+    @PreAuthorize("hasAnyRole('ADMIN','EJECUTIVO')")
+    public ResponseEntity<Queja> findByFolio(@PathVariable String folio) {
+        return complaintService.findByFolio(folio)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PatchMapping("/{folio}/estado")
-    @PreAuthorize("hasAnyRole('ADMIN', 'EJECUTIVO')")
-    public ResponseEntity<String> cambiarEstado(
+    @PreAuthorize("hasAnyRole('ADMIN','EJECUTIVO')")
+    public ResponseEntity<String> advanceStatus(
             @PathVariable String folio,
             @RequestParam EstadoQueja nuevoEstado) {
-        try {
-            gestionQuejasService.avanzarEstado(folio, nuevoEstado);
-            return ResponseEntity.ok("✅ Estado de la queja actualizado exitosamente a: " + nuevoEstado);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error al cambiar estado: " + e.getMessage());
-        }
+        complaintService.advanceStatus(folio, nuevoEstado);
+        return ResponseEntity.ok("Status updated to: " + nuevoEstado);
     }
 
     @PatchMapping("/{folio}/dictamen")
-    @PreAuthorize("hasAnyRole('ADMIN')")
-    public ResponseEntity<String> emitirDictamen(
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> issueRuling(
             @PathVariable String folio,
-            @RequestBody String textoDictamen) {
-        try {
-            gestionQuejasService.emitirDictamen(folio, textoDictamen);
-            return ResponseEntity.ok("✅ Dictamen emitido correctamente y estado actualizado a DICTAMINADA.");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error al emitir dictamen: " + e.getMessage());
-        }
+            @RequestBody String rulingText) {
+        complaintService.issueRuling(folio, rulingText);
+        return ResponseEntity.ok("Ruling issued successfully.");
     }
 
     @DeleteMapping("/{folio}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> eliminarQueja(@PathVariable String folio){
-        try{
-            gestionQuejasService.eliminarQueja(folio);
-            return ResponseEntity.ok("Queja eliminada exitosamente con folio: "+folio);
-        }catch (Exception e){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Error al eliminar un folio");
-        }
+    public ResponseEntity<String> deleteComplaint(@PathVariable String folio) {
+        complaintService.deleteComplaint(folio);
+        return ResponseEntity.ok("Complaint deleted: " + folio);
     }
 }

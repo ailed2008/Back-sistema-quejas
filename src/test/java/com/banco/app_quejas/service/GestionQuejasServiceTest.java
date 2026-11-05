@@ -2,6 +2,8 @@ package com.banco.app_quejas.service;
 
 import com.banco.app_quejas.dto.QuejaTarjetaCreditoRequest;
 import com.banco.app_quejas.entity.*;
+import com.banco.app_quejas.exception.ComplaintNotFoundException;
+import com.banco.app_quejas.exception.DuplicateFolioException;
 import com.banco.app_quejas.repository.QuejaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -28,7 +30,7 @@ public class GestionQuejasServiceTest {
     private QuejaRepository quejaRepository;
 
     @InjectMocks
-    private GestionQuejasService gestionQuejasService;
+    private GestionQuejasService complaintService;
 
     private QuejaTarjetaCreditoRequest requestDto;
     private Folio folio001;
@@ -50,89 +52,91 @@ public class GestionQuejasServiceTest {
     }
 
     @Test
-    @DisplayName("Debe registrar una queja de tarjeta exitosamente cuando el folio no existe")
-    void testRegistrarQuejaTarjetaExitoso() {
+    @DisplayName("Should register a card complaint successfully when folio does not exist")
+    void testRegisterCardComplaintSuccess() {
         when(quejaRepository.existsById(folio002)).thenReturn(false);
         when(quejaRepository.save(any(QuejaTarjetaCredito.class))).thenReturn(null);
 
-        gestionQuejasService.registrarQuejaTarjeta(requestDto);
+        complaintService.registerCardComplaint(requestDto);
 
         verify(quejaRepository, times(1)).existsById(folio002);
         verify(quejaRepository, times(1)).save(any(QuejaTarjetaCredito.class));
     }
 
     @Test
-    @DisplayName("Debe lanzar IllegalArgumentException si el folio de la queja ya existe")
-    void testRegistrarQuejaFolioDuplicado() {
+    @DisplayName("Should throw DuplicateFolioException when folio already exists")
+    void testRegisterComplaintDuplicateFolio() {
         when(quejaRepository.existsById(folio002)).thenReturn(true);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
-                gestionQuejasService.registrarQuejaTarjeta(requestDto)
+        assertThrows(DuplicateFolioException.class, () ->
+                complaintService.registerCardComplaint(requestDto)
         );
 
-        assertThat(exception.getMessage()).contains("Ya existe una queja registrada con el folio");
         verify(quejaRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("Debe buscar una queja por folio exitosamente")
-    void testBuscarPorFolioExitoso() {
-        Queja quejaMock = mock(Queja.class);
-        when(quejaRepository.findById(folio001)).thenReturn(Optional.of(quejaMock));
+    @DisplayName("Should find a complaint by folio successfully")
+    void testFindByFolioSuccess() {
+        Queja mock = mock(Queja.class);
+        when(quejaRepository.findById(folio001)).thenReturn(Optional.of(mock));
 
-        Optional<Queja> resultado = gestionQuejasService.buscarPorFolio("Q-2026-001");
+        Optional<Queja> result = complaintService.findByFolio("Q-2026-001");
 
-        assertThat(resultado).isPresent();
+        assertThat(result).isPresent();
         verify(quejaRepository, times(1)).findById(folio001);
     }
 
     @Test
-    @DisplayName("Debe retornar Optional vacío si el folio es nulo o en blanco al buscar")
-    void testBuscarPorFolioInvalido() {
-        Optional<Queja> resultadoNulo = gestionQuejasService.buscarPorFolio(null);
-        Optional<Queja> resultadoBlanco = gestionQuejasService.buscarPorFolio("   ");
-
-        assertThat(resultadoNulo).isEmpty();
-        assertThat(resultadoBlanco).isEmpty();
+    @DisplayName("Should return empty Optional when folio is null or blank")
+    void testFindByFolioInvalid() {
+        assertThat(complaintService.findByFolio(null)).isEmpty();
+        assertThat(complaintService.findByFolio("   ")).isEmpty();
         verify(quejaRepository, never()).findById(any());
     }
 
     @Test
-    @DisplayName("Debe obtener la lista de todas las quejas registradas")
-    void testObtenerTodas() {
+    @DisplayName("Should return all complaints")
+    void testFindAll() {
         when(quejaRepository.findAll()).thenReturn(List.of(mock(Queja.class), mock(Queja.class)));
 
-        List<Queja> lista = gestionQuejasService.obtenerTodas();
-
-        assertThat(lista).hasSize(2);
+        assertThat(complaintService.findAll()).hasSize(2);
         verify(quejaRepository, times(1)).findAll();
     }
 
     @Test
-    @DisplayName("Debe avanzar el estado de una queja existente correctamente")
-    void testAvanzarEstadoExitoso() {
-        Queja quejaMock = mock(Queja.class);
-        when(quejaRepository.findById(folio001)).thenReturn(Optional.of(quejaMock));
-        when(quejaRepository.save(any(Queja.class))).thenReturn(quejaMock);
+    @DisplayName("Should advance complaint status successfully")
+    void testAdvanceStatusSuccess() {
+        Queja mock = mock(Queja.class);
+        when(quejaRepository.findById(folio001)).thenReturn(Optional.of(mock));
+        when(quejaRepository.save(any(Queja.class))).thenReturn(mock);
 
-        gestionQuejasService.avanzarEstado("Q-2026-001", EstadoQueja.EN_INVESTIGACION);
+        complaintService.advanceStatus("Q-2026-001", EstadoQueja.EN_INVESTIGACION);
 
-        verify(quejaRepository, times(1)).findById(folio001);
-        verify(quejaMock, times(1)).cambiarEstado(EstadoQueja.EN_INVESTIGACION);
-        verify(quejaRepository, times(1)).save(quejaMock);
+        verify(mock, times(1)).changeStatus(EstadoQueja.EN_INVESTIGACION);
+        verify(quejaRepository, times(1)).save(mock);
     }
 
     @Test
-    @DisplayName("Debe emitir dictamen en una queja existente correctamente")
-    void testEmitirDictamenExitoso() {
-        Queja quejaMock = mock(Queja.class);
-        when(quejaRepository.findById(folio001)).thenReturn(Optional.of(quejaMock));
-        when(quejaRepository.save(any(Queja.class))).thenReturn(quejaMock);
+    @DisplayName("Should throw ComplaintNotFoundException when advancing status of non-existent folio")
+    void testAdvanceStatusNotFound() {
+        when(quejaRepository.findById(folio001)).thenReturn(Optional.empty());
 
-        gestionQuejasService.emitirDictamen("Q-2026-001", "Dictamen favorable al cliente");
+        assertThrows(ComplaintNotFoundException.class, () ->
+                complaintService.advanceStatus("Q-2026-001", EstadoQueja.EN_INVESTIGACION)
+        );
+    }
 
-        verify(quejaRepository, times(1)).findById(folio001);
-        verify(quejaMock, times(1)).emitirDictamen("Dictamen favorable al cliente");
-        verify(quejaRepository, times(1)).save(quejaMock);
+    @Test
+    @DisplayName("Should issue ruling successfully")
+    void testIssueRulingSuccess() {
+        Queja mock = mock(Queja.class);
+        when(quejaRepository.findById(folio001)).thenReturn(Optional.of(mock));
+        when(quejaRepository.save(any(Queja.class))).thenReturn(mock);
+
+        complaintService.issueRuling("Q-2026-001", "Ruling in favor of the client.");
+
+        verify(mock, times(1)).issueRuling("Ruling in favor of the client.");
+        verify(quejaRepository, times(1)).save(mock);
     }
 }
