@@ -47,7 +47,12 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // Permite cualquier origen — no requiere cambios al agregar nuevos frontends
-        configuration.addAllowedOriginPattern("*");
+        //configuration.addAllowedOriginPattern("*");
+        configuration.setAllowedOrigins(List.of(
+                "https://queja.netlify.app",
+                "http://localhost:4200",
+                "http://localhost:3000"
+        ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
